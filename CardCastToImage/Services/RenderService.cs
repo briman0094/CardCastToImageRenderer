@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
+using System.Text.RegularExpressions;
 using CardCastToImage.Extensions;
 using CardCastToImage.Models;
 
@@ -122,11 +123,11 @@ namespace CardCastToImage.Services
 					CardWidth - ( LeftMargin + RightMargin ),
 					CardHeight - ( TopMargin + BottomMargin + subTextSize.Height ) );
 
-				graphics.MeasureString( mainText, mainFont, mainTextBounds, mainFormat, out var charsFitted, out var linesFitted );
+				graphics.MeasureString( mainText, mainFont, mainTextBounds, mainFormat, out var charsFitted, out _ );
 
 				var lineText = mainText.Substring( 0, charsFitted );
 
-				if ( charsFitted != mainText.Length && !lineText.EndsWith( " " ) )
+				if ( charsFitted != mainText.Length && !Regex.IsMatch( lineText, @"[\s-\.]$" ) )
 					lineText += "-";
 
 				graphics.DrawString( lineText, mainFont, textBrush, lineOrigin, mainFormat );
