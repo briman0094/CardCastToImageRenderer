@@ -40,8 +40,8 @@ namespace CardCastToImage
 					Console.Write( "Rendering..." );
 
 					// Render the card fronts (calls then responses)
-					var callCardSheets     = RenderService.RenderCardSheet( deck.Calls, deckCode, Color.Black, Color.White );
-					var responseCardSheets = RenderService.RenderCardSheet( deck.Responses, deckCode, Color.White, Color.Black );
+					var callCardSheets     = RenderService.RenderCardSheets( deck.Calls, deckCode, Color.Black, Color.White );
+					var responseCardSheets = RenderService.RenderCardSheets( deck.Responses, deckCode, Color.White, Color.Black );
 
 					foreach ( var (sheetIndex, sheetBitmap) in callCardSheets.Pairs() )
 					{
