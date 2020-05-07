@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28307.1062
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30011.22
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CardCastToImage", "CardCastToImage.csproj", "{B83451B6-87DB-48A9-A61E-EFFF529888DF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CardCastToImage", "CardCastToImage\CardCastToImage.csproj", "{9086479D-388A-4DC8-B231-5B8F5E9FCEFB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -11,10 +11,10 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{B83451B6-87DB-48A9-A61E-EFFF529888DF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B83451B6-87DB-48A9-A61E-EFFF529888DF}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B83451B6-87DB-48A9-A61E-EFFF529888DF}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B83451B6-87DB-48A9-A61E-EFFF529888DF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9086479D-388A-4DC8-B231-5B8F5E9FCEFB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9086479D-388A-4DC8-B231-5B8F5E9FCEFB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9086479D-388A-4DC8-B231-5B8F5E9FCEFB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9086479D-388A-4DC8-B231-5B8F5E9FCEFB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
