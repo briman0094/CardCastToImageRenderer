@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using CardCastToImage.Extensions;
 using CardCastToImage.Services;
 
-namespace CardCastToImage
+namespace CardCastToImage.CLI
 {
 	class Program
 	{

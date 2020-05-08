@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
+using System.Globalization;
 using System.Text.RegularExpressions;
 using CardCastToImage.Extensions;
 using CardCastToImage.Models;
@@ -95,15 +96,12 @@ namespace CardCastToImage.Services
 
 		private static void RenderCardText( Graphics graphics, Color foreground, string mainText, string subText )
 		{
-			using var mainFormat = new StringFormat( StringFormat.GenericDefault ) {
-				Trimming    = StringTrimming.EllipsisWord,
-				FormatFlags = StringFormatFlags.NoWrap,
-			};
-			using var subFormat = new StringFormat( StringFormat.GenericDefault ) { Alignment = StringAlignment.Far };
-			using var mainFont  = new Font( "Arial", MainTextFontSize, FontStyle.Bold );
-			using var subFont   = new Font( "Arial", SubTextFontSize, FontStyle.Bold );
-			using var textBrush = new SolidBrush( foreground );
-			using var textPen   = new Pen( textBrush ) { Width = 1 };
+			using var mainFormat = new StringFormat( StringFormatFlags.NoWrap, CultureInfo.CurrentCulture.LCID ) { Trimming  = StringTrimming.EllipsisWord };
+			using var subFormat  = new StringFormat( StringFormatFlags.NoWrap, CultureInfo.CurrentCulture.LCID ) { Alignment = StringAlignment.Far };
+			using var mainFont   = new Font( "Arial", MainTextFontSize, FontStyle.Bold );
+			using var subFont    = new Font( "Arial", SubTextFontSize, FontStyle.Bold );
+			using var textBrush  = new SolidBrush( foreground );
+			using var textPen    = new Pen( textBrush ) { Width = 1 };
 
 			graphics.InterpolationMode = InterpolationMode.HighQualityBilinear;
 			graphics.SmoothingMode     = SmoothingMode.AntiAlias;
