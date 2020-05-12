@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+using CardCastToImage.Web.HostedServices;
 
 namespace CardCastToImage.Web.Utility
 {
-	public class AsyncCache<TKey, TItem>
+	public class AsyncCache<TKey, TItem> : IDisposable
 	{
 		private readonly Dictionary<TKey, TItem>                       items                 = new Dictionary<TKey, TItem>();
 		private readonly Dictionary<TKey, DateTime>                    itemExpiries          = new Dictionary<TKey, DateTime>();
@@ -14,6 +16,8 @@ namespace CardCastToImage.Web.Utility
 		{
 			this.ItemFactory = itemFactory ?? throw new ArgumentNullException( nameof(itemFactory) );
 			this.Expiry      = expiry ?? TimeSpan.Zero;
+
+			PeriodicService.Elapsed += this.RemoveExpiredCacheEntries;
 		}
 
 		public    TimeSpan                Expiry      { get; set; }
@@ -47,25 +51,30 @@ namespace CardCastToImage.Web.Utility
 			}
 
 			// If we don't have the item, see if we have a pending completion source for it
-			Task<TItem> itemTask = default;
+			bool                        foundExistingCompletionSource = false;
+			TaskCompletionSource<TItem> completionSource              = default;
 
 			lock ( this.itemCompletionSources )
 			{
 				if ( this.itemCompletionSources.ContainsKey( key ) )
-					itemTask = this.itemCompletionSources[ key ].Task;
+				{
+					// We found an existing completion source
+					foundExistingCompletionSource = true;
+					completionSource              = this.itemCompletionSources[ key ];
+				}
+				else
+				{
+					// If not, this is the first request for this item (at least since it last expired)
+					completionSource = new TaskCompletionSource<TItem>();
+
+					this.itemCompletionSources.Add( key, completionSource );
+				}
 			}
 
-			// If we did, await and return that completion source's task
-			if ( itemTask != default )
-				return await itemTask;
-
-			// If not, this is the first request for this item (at least since it last expired) so let's 
-			var completionSource = new TaskCompletionSource<TItem>();
-
-			lock ( this.itemCompletionSources )
-			{
-				this.itemCompletionSources.Add( key, completionSource );
-			}
+			// If we can, just await the existing completion source's task. Otherwise fall through and create
+			// the item and eventually resolve the completion source
+			if ( foundExistingCompletionSource )
+				return await completionSource.Task;
 
 			try
 			{
@@ -100,6 +109,40 @@ namespace CardCastToImage.Web.Utility
 					this.itemCompletionSources.Remove( key );
 				}
 			}
+		}
+
+		private void RemoveExpiredCacheEntries()
+		{
+			List<TKey> expiredKeys;
+
+			lock ( this.items )
+			{
+				expiredKeys = this.items.Keys.Where( key => this.itemExpiries.ContainsKey( key ) && this.itemExpiries[ key ] < DateTime.UtcNow ).ToList();
+			}
+
+			foreach ( var key in expiredKeys )
+			{
+				lock ( this.items )
+				{
+					this.items.Remove( key );
+					this.itemExpiries.Remove( key );
+				}
+
+				lock ( this.itemCompletionSources )
+				{
+					if ( this.itemCompletionSources.ContainsKey( key ) )
+					{
+						this.itemCompletionSources.Remove( key, out var completionSource );
+
+						completionSource?.TrySetCanceled();
+					}
+				}
+			}
+		}
+
+		public void Dispose()
+		{
+			PeriodicService.Elapsed -= this.RemoveExpiredCacheEntries;
 		}
 	}
 }

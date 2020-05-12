@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
-using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using CardCastToImage.Models;
@@ -28,29 +28,53 @@ namespace CardCastToImage.Web.Controllers
 
 		#region Caches
 
-		private static readonly AsyncCache<string, CardcastDeck> DeckCache          = new AsyncCache<string, CardcastDeck>( CardCastService.GetDeckAsync );
-		private static readonly AsyncCache<string, List<Bitmap>> CallCardsCache     = new AsyncCache<string, List<Bitmap>>( CreateCallCards );
-		private static readonly AsyncCache<string, List<Bitmap>> ResponseCardsCache = new AsyncCache<string, List<Bitmap>>( CreateResponseCards );
+		private static readonly TimeSpan                         CacheValiditySpan  = TimeSpan.FromMinutes( 5 );
+		private static readonly AsyncCache<string, CardcastDeck> DeckCache          = new AsyncCache<string, CardcastDeck>( CardCastService.GetDeckAsync, CacheValiditySpan );
+		private static readonly AsyncCache<string, List<byte[]>> CallCardsCache     = new AsyncCache<string, List<byte[]>>( CreateCallCards, CacheValiditySpan );
+		private static readonly AsyncCache<string, List<byte[]>> ResponseCardsCache = new AsyncCache<string, List<byte[]>>( CreateResponseCards, CacheValiditySpan );
 
-		private static async Task<List<Bitmap>> CreateCallCards( string deckCode )
+		private static async Task<List<byte[]>> CreateCallCards( string deckCode )
 		{
-			var deck       = await DeckCache.GetItemAsync( deckCode );
-			var cardSheets = RenderService.RenderCardSheets( deck.Calls, deckCode, Color.Black, Color.White );
+			var deck         = await DeckCache.GetItemAsync( deckCode );
+			var cardSheets   = RenderService.RenderCardSheets( deck.Calls, deckCode, Color.Black, Color.White );
+			var sheetBuffers = new List<byte[]>();
 
-			return cardSheets.ToList();
+			Debug.WriteLine( $"Creating call cards for deck {deckCode}" );
+
+			foreach ( var sheet in cardSheets )
+			{
+				await using var sheetStream = new MemoryStream();
+
+				sheet.Save( sheetStream, ImageFormat.Png );
+				sheetBuffers.Add( sheetStream.ToArray() );
+			}
+
+			return sheetBuffers;
 		}
 
-		private static async Task<List<Bitmap>> CreateResponseCards( string deckCode )
+		private static async Task<List<byte[]>> CreateResponseCards( string deckCode )
 		{
-			var deck       = await DeckCache.GetItemAsync( deckCode );
-			var cardSheets = RenderService.RenderCardSheets( deck.Responses, deckCode, Color.White, Color.Black );
+			var deck         = await DeckCache.GetItemAsync( deckCode );
+			var cardSheets   = RenderService.RenderCardSheets( deck.Responses, deckCode, Color.White, Color.Black );
+			var sheetBuffers = new List<byte[]>();
 
-			return cardSheets.ToList();
+			Debug.WriteLine( $"Creating response cards for deck {deckCode}" );
+
+			foreach ( var sheet in cardSheets )
+			{
+				await using var sheetStream = new MemoryStream();
+
+				sheet.Save( sheetStream, ImageFormat.Png );
+				sheetBuffers.Add( sheetStream.ToArray() );
+			}
+
+			return sheetBuffers;
 		}
 
 		#endregion
 
 		[ Route( "[controller]/[action]/{type}" ) ]
+		[ ResponseCache( Duration = 3600, Location = ResponseCacheLocation.Any ) ]
 		public IActionResult Back( CardType? type )
 		{
 			if ( type == default )
@@ -66,13 +90,17 @@ namespace CardCastToImage.Web.Controllers
 			};
 			var cardStream = new MemoryStream();
 
-			cardBitmap.Save( cardStream, ImageFormat.Png );
-			cardStream.Seek( 0, SeekOrigin.Begin );
+			lock ( cardBitmap )
+			{
+				cardBitmap.Save( cardStream, ImageFormat.Png );
+				cardStream.Seek( 0, SeekOrigin.Begin );
+			}
 
 			return File( cardStream, "image/png" );
 		}
 
 		[ Route( "[controller]/{deckCode}/[action]/{type}/{sheet?}" ) ]
+		[ ResponseCache( Duration = 3600, Location = ResponseCacheLocation.Any ) ]
 		public async Task<IActionResult> Front( string deckCode, CardType? type, int? sheet )
 		{
 			if ( string.IsNullOrWhiteSpace( deckCode ) || deckCode.Length != 5 )
@@ -96,13 +124,9 @@ namespace CardCastToImage.Web.Controllers
 						return BadRequest( $"Deck \"{deckCode}\" only has {sheets.Count} card sheets" );
 				}
 
-				var sheetBitmap = sheets[ ( sheet ?? 1 ) - 1 ];
-				var sheetStream = new MemoryStream();
+				var sheetBuffer = sheets[ ( sheet ?? 1 ) - 1 ];
 
-				sheetBitmap.Save( sheetStream, ImageFormat.Png );
-				sheetStream.Seek( 0, SeekOrigin.Begin );
-
-				return File( sheetStream, "image/png" );
+				return File( sheetBuffer, "image/png" );
 			}
 			catch ( HttpRequestException ex ) when ( ex.Message.Contains( "Not Found" ) )
 			{

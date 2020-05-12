@@ -1,4 +1,6 @@
+using CardCastToImage.Web.HostedServices;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 namespace CardCastToImage.Web
@@ -14,6 +16,9 @@ namespace CardCastToImage.Web
 			Host.CreateDefaultBuilder( args )
 				.ConfigureWebHostDefaults( webBuilder => {
 					webBuilder.UseStartup<Startup>();
+				} )
+				.ConfigureServices( services => {
+					services.AddHostedService<PeriodicService>();
 				} );
 	}
 }
