@@ -16,7 +16,26 @@ namespace CardCastToImage.Services
 			},
 		};
 
-		public static async Task<CardcastDeck> GetDeckAsync( string deckCode )
+		public static async Task<CardcastDeck> GetDeckAsync( string deckCode, bool includeCards = true )
+		{
+			using var httpClient = new HttpClient();
+			using var response   = await httpClient.GetAsync( $"{BaseUrl}/decks/{deckCode}" );
+
+			response.EnsureSuccessStatusCode();
+
+			var deckJson = await response.Content.ReadAsStringAsync();
+			var deck     = JsonConvert.DeserializeObject<CardcastDeck>( deckJson, JsonSettings );
+
+			if ( deck == default )
+				return default;
+
+			if ( includeCards )
+				deck.Cards = await GetDeckCardsAsync( deckCode );
+
+			return deck;
+		}
+
+		public static async Task<CardcastDeckCards> GetDeckCardsAsync( string deckCode )
 		{
 			using var httpClient = new HttpClient();
 			using var response   = await httpClient.GetAsync( $"{BaseUrl}/decks/{deckCode}/cards" );
@@ -25,7 +44,7 @@ namespace CardCastToImage.Services
 
 			var deckJson = await response.Content.ReadAsStringAsync();
 
-			return JsonConvert.DeserializeObject<CardcastDeck>( deckJson, JsonSettings );
+			return JsonConvert.DeserializeObject<CardcastDeckCards>( deckJson, JsonSettings );
 		}
 	}
 }

@@ -33,6 +33,8 @@ namespace CardCastToImage.Services
 
 		private static Bitmap CreateSheetBitmap() => new Bitmap( CardWidth * CardColumns, CardHeight * CardRows );
 
+		public const int CardsPerSheet = CardColumns * CardRows;
+
 		public static IEnumerable<Bitmap> RenderCardSheets( IEnumerable<CardcastCard> cards, string deckCode, Color background, Color foreground )
 		{
 			var bitmap       = CreateSheetBitmap();
